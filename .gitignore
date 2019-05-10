@@ -1,0 +1,9 @@
+node_modules
+config/*.json
+.env
+deployment/deployment.sh
+public/assets/js/*hot-update*
+public/assets/js/vendors*
+public/assets/js/app*
+certs/tatooine.key
+certs/tatooine.pub

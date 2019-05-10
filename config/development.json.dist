@@ -1,0 +1,36 @@
+{
+    "server": {
+        "port": 1337
+    },
+    "authentification": {
+        "type": "jwt",
+        "options": {
+            "privateKeyPath": "",
+            "publicKeyPath": "",
+            "expirationTime": 600,
+            "issuer": "",
+            "audience": "",
+            "allowedAudiences": [
+                "",
+                ""
+            ]
+        }
+    },
+    "credentials": {
+        "type": "database",
+        "options": {
+            "host": "",
+            "port": 1337,
+            "user": "",
+            "password": "",
+            "database": ""
+        }
+    },
+    "rabbitmq": {
+        "host": "",
+        "port": 1337,
+        "username": "",
+        "password": "",
+        "vhost": ""
+    }
+}

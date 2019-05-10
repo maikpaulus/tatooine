@@ -1,0 +1,12 @@
+version: '3'
+services:
+  node-environment:
+    image: node:${NODE_VERSION}-alpine
+    volumes:
+      - ./:/var/www/html
+    ports: 
+      - ${SERVER_PORT}:80
+    environment:
+      - NODE_ENV=${NODE_ENV}
+    working_dir: /var/www/html
+    command: npm run start:docker:${NODE_ENV}
