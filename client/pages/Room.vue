@@ -38,27 +38,27 @@
     </div>
 </template>
 
-<script>
-    export default {
-        props: {
-            name: {
-                type: String,
-                default: ''
-            },
-            image: {
-                type: String,
-                default: '',
-            }
-        },
+<script lang="ts">
+    import Vue from 'vue';
+    import { Component, Prop } from 'vue-property-decorator';
 
-        mounted() {
+    interface FaBaseClasses {
+        [key: string]: boolean;
+    }
+
+    @Component
+    export default class Room extends Vue {
+        @Prop() private name: string = '';
+        @Prop() private image: string = '';
+
+        private mounted() {
             /* Notification.requestPermission((result) => {
                 alert(result);
             })
             window.setTimeout(() => {
                 var notification = new Notification('123', { body: '123 Polizei'});
             }, 10000); */
-        },
+        }
 
         data() {
             return {
@@ -103,18 +103,19 @@
                     }
                 ]
             }
-        },
+        }
 
-        methods: {
-            getIcon(element) {
-                let faBaseClasses = {
-                    fas: element.icon !== 'fa-windows',
-                    fab: element.icon === 'fa-windows'
-                };
+        getIcon(elem: {
+            icon: string
+        }) {
+            let faBaseClasses: FaBaseClasses = {
+                fas: elem.icon !== 'fa-windows',
+                fab: elem.icon === 'fa-windows'
+            };
 
-                faBaseClasses[element.icon] = true;
-                return faBaseClasses;
-            }
+            faBaseClasses[elem.icon] = true;
+
+            return faBaseClasses;
         }
     }
 </script>

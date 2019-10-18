@@ -117,16 +117,186 @@
     </div>
 </template>
 
-<script>
-    export default {
-        props: {
-            mac: {
-                type: String,
-                default: '',
-            }
-        },
+<script lang="ts">
+    
+    import Vue from 'vue';
+    import { Component, Prop } from 'vue-property-decorator';
 
-        mounted() {
+    export enum ModeSelection {
+        Manual = 'manual',
+        Auto = 'auto'
+    }
+
+    export enum SaveResult {
+        Successful = 'successful',
+        Failed = 'failed'
+    }
+
+    export enum DaySelection {
+        Monday = 'mon',
+        Tuesday = 'tue',
+        Wednesday = 'wed',
+        Thursday = 'thu',
+        Friday = 'fri',
+        Saturday = 'sat',
+        Sunday = 'sun',
+    }
+
+    export interface Timer {
+        from: string;
+        to: string;
+        temperature: number;
+    }
+
+    export interface Device {
+        targetTemperature: number;
+        mode: ModeSelection;
+        locked: boolean;
+        boost: boolean;
+        offset: number;
+        valve: number;
+        timer: {
+            [key in DaySelection]: Array<Timer>
+        }
+    }
+
+    export interface SaveState {
+        process: boolean;
+        state: SaveResult | boolean;
+    }
+
+    export interface SliderState {
+        draggable: boolean;
+    }
+
+    export interface SchedulerState {
+        selection: DaySelection;
+    }
+
+    export interface MetaState {
+        temperature: number;
+    }
+    
+    declare global {
+        interface Element {
+            offsetLeft: number;
+            offsetWidth: number;
+            offsetTop: number;
+            offsetHeight: number;
+            style: {
+                transform: string;
+            };
+            
+            onmousedown: (event: Event) => any;
+            onmouseup: (event: Event) => any;
+            ontouchstart: (event: Event) => any;
+            ontouchend: (event: Event) => any;
+        }
+
+        interface VueConstructor {
+            $http: {
+                get: (
+                    url: string, 
+                    data?: any, 
+                    options?: any
+                ) => any
+            }
+        }
+
+        interface PromiseLike<T> {
+            then(
+                onfulfilled?: (value: any) => void | PromiseLike<void>,
+                onrejected?: (reason: any) => PromiseLike<never>
+            ): any
+        }
+    }
+
+    declare global {
+    }
+
+    @Component
+    export default class Thermostat extends Vue {
+        @Prop() private mac: String = '';
+
+        private save: SaveState = {
+            process: false,
+            state: undefined
+        }
+
+        private slider: SliderState = {
+            draggable: false
+        }
+
+        private scheduler: SchedulerState = {
+            selection: DaySelection.Monday
+        };
+
+        private meta: MetaState = {
+            temperature: 0
+        }
+
+        private device: Device = {
+                targetTemperature: 20,
+                mode: ModeSelection.Auto,
+                locked: false,
+                boost: false,
+                offset: 0,
+                valve: 0,
+                timer: {
+                    mon: [
+                        {
+                            from: '00:00',
+                            to: '07:00',
+                            temperature: 20
+                        }
+                    ],
+                    tue: [
+                        {
+                            from: '00:00',
+                            temperature: 20,
+                            to: '24:00'
+                        }
+                    ],
+                    wed: [
+                        {
+                            from: '00:00',
+                            temperature: 20,
+                            to: '24:00'
+                        }
+                    ],
+                    thu: [
+                        {
+                            from: '00:00',
+                            temperature: 20,
+                            to: '24:00'
+                        }
+                    ],
+                    fri: [
+                        {
+                            from: '00:00',
+                            temperature: 20,
+                            to: '24:00'
+                        }
+                    ],
+                    sat: [
+                        {
+                            from: '00:00',
+                            temperature: 20,
+                            to: '24:00'
+                        }
+                    ],
+                    sun: [
+                        {
+                            from: '00:00',
+                            temperature: 20,
+                            to: '24:00'
+                        }
+                    ]
+                }
+        }
+        
+        private mounted() {
+            this.mac = this.mac || this.$route.params.mac;
             const border = document.getElementsByClassName('temperature-controller')[0];
             const controller = document.getElementsByClassName('controller')[0];
             const slider = document.getElementsByClassName('offset-slider')[0];
@@ -190,7 +360,6 @@
                     this.$http.get('http://weather.smarthome.maraundmaik.de/device/thermostat/' + this.mac)
                         .then((response) => {
                             this.device = response.data.response.device;
-
                             let angle = Math.round(126 + (this.device.targetTemperature - 4) * 2 * quotient);
                             controller.style.transform = `rotate(${angle}deg)`;
                         })
@@ -203,9 +372,8 @@
                     .then((response) => {
                         const data = response.data.response;
 
-        
                         this.device.targetTemperature = data.temperature;
-                        this.device.mode = data.mode.auto ? 'auto' : 'manual';
+                        this.device.mode = data.mode.auto ? ModeSelection.Auto : ModeSelection.Manual;
                         this.device.locked = data.mode.locked;
                         this.device.boost = data.mode.boost;
                         this.device.valve = data.valve;
@@ -217,209 +385,121 @@
                         let angle = Math.round(126 + (data.temperature - 4) * 2 * quotient);
                         controller.style.transform = `rotate(${angle}deg)`;
 
-                        this.setSaveMode(false, 'successful', true);
+                        this.setSaveMode(false, SaveResult.Successful, true);
                     })
                 })
                 .catch((err) => {
-                    this.setSaveMode(false, 'failed');
+                    this.setSaveMode(false, SaveResult.Failed);
                 });
-        },
+        }
 
-        data() {
-            return {
-                save: {
-                    process: false,
-                    state: undefined
-                },
-                slider: {
-                    draggable: false
-                },
-                scheduler: {
-                    selection: 'mon'
-                },
-                meta: {
-                    temperature: 0
-                },
-                device: {
-                    targetTemperature: 20,
-                    mode: 'auto',
-                    locked: false,
-                    boost: false,
-                    offset: 0,
-                    timer: {
-                        mon: [
-                            {
-                                from: '00:00',
-                                to: '07:00',
-                                temperature: 20
-                            }
-                        ],
-                        tue: [
-                            {
-                                from: '00:00',
-                                temperature: 20,
-                                to: '24:00'
-                            }
-                        ],
-                        wed: [
-                            {
-                                from: '00:00',
-                                temperature: 20,
-                                to: '24:00'
-                            }
-                        ],
-                        thu: [
-                            {
-                                from: '00:00',
-                                temperature: 20,
-                                to: '24:00'
-                            }
-                        ],
-                        fri: [
-                            {
-                                from: '00:00',
-                                temperature: 20,
-                                to: '24:00'
-                            }
-                        ],
-                        sat: [
-                            {
-                                from: '00:00',
-                                temperature: 20,
-                                to: '24:00'
-                            }
-                        ],
-                        sun: [
-                            {
-                                from: '00:00',
-                                temperature: 20,
-                                to: '24:00'
-                            }
-                        ]
-                    }
-                }
+        saveTargetTemperature() {
+            this.save.process = true;
+            this.$http.post('/api/thermostat/' + this.mac, {
+                type: 'temperature',
+                command: 'temp',
+                parameters: [ this.device.targetTemperature ]
+            }).then((response) => {
+                this.setSaveMode(false, SaveResult.Successful, true);
+            }).catch((err) => {
+                this.setSaveMode(false, SaveResult.Failed);
+            });
+        }
+
+        saveLocked() {
+            this.device.locked = !this.device.locked;
+            this.save.process = true;
+        
+            let command = this.device.locked ? 'lock' : 'unlock';
+            this.$http.post('/api/thermostat/' + this.mac, {
+                type: 'others',
+                    command
+            }).then((response) => {
+                this.setSaveMode(false, SaveResult.Successful, true);
+            }).catch((err) => {
+                this.setSaveMode(false, SaveResult.Failed);
+            });
+        }
+
+        saveBoost() {
+            this.device.boost = !this.device.boost;
+            this.save.process = true;
+        
+            let command = this.device.boost ? 'boost' : 'boost_off';
+            this.$http.post('/api/thermostat/' + this.mac, {
+                type: 'temperature',
+                    command
+            }).then((response) => {
+                this.setSaveMode(false, SaveResult.Successful, true);
+            }).catch((err) => {
+                this.setSaveMode(false, SaveResult.Failed);
+            });
+        }
+
+        saveMode() {
+            this.save.process = true;
+
+            if (this.device.mode === ModeSelection.Manual) {
+                this.device.mode = ModeSelection.Manual;
+                this.$http.post('/api/thermostat/' + this.mac, {
+                    type: 'mode',
+                    command: 'auto'
+                }).then((response) => {
+                    this.setSaveMode(false, SaveResult.Successful, true);
+                }).catch((err) => {
+                    this.setSaveMode(false, SaveResult.Failed);
+                });
             }
-        },
-
-        methods: {
-            saveTargetTemperature() {
-                this.save.process = true;
+            else {
+                this.device.mode = ModeSelection.Manual;
                 this.$http.post('/api/thermostat/' + this.mac, {
-                    type: 'temperature',
-                    command: 'temp',
-                    parameters: [ this.device.targetTemperature ]
+                    type: 'mode',
+                    command: 'manual'
                 }).then((response) => {
-                    this.setSaveMode(false, 'successful', true);
+                    this.setSaveMode(false, SaveResult.Successful, true);
                 }).catch((err) => {
-                    this.setSaveMode(false, 'failed');
+                    this.setSaveMode(false, SaveResult.Failed);
                 });
-            },
+            }
+        }
 
-            saveLocked() {
-                this.device.locked = !this.device.locked;
-                this.save.process = true;
+        saveOffset() {
+            this.save.process = true;
+            this.$http.post('/api/thermostat/' + this.mac, {
+                type: 'configuration',
+                command: 'offset',
+                parameters: [ this.device.offset ]
+            }).then((response) => {
+                this.setSaveMode(false, SaveResult.Successful, true);
+            }).catch((err) => {
+                this.setSaveMode(false, SaveResult.Failed);
+            });
+        }
+
             
-                let command = this.device.locked ? 'lock' : 'unlock';
-                this.$http.post('/api/thermostat/' + this.mac, {
-                    type: 'others',
-                     command
-                }).then((response) => {
-                    this.setSaveMode(false, 'successful', true);
-                }).catch((err) => {
-                    this.setSaveMode(false, 'failed');
-                });
-            },
+        saveToDatabase(callback) {
+            this.$http.post('http://weather.smarthome.maraundmaik.de/device/thermostat/' + this.mac, {
+                body: this.device
+            }).then((response) => {
+                callback(null, response);
+            }).catch((err) => {
+                callback(err);
+            });
+        }
 
-            saveBoost() {
-                this.device.boost = !this.device.boost;
-                this.save.process = true;
-            
-                let command = this.device.boost ? 'boost' : 'boost_off';
-                this.$http.post('/api/thermostat/' + this.mac, {
-                    type: 'temperature',
-                     command
-                }).then((response) => {
-                    this.setSaveMode(false, 'successful', true);
-                }).catch((err) => {
-                    this.setSaveMode(false, 'failed');
-                });
-            },
-
-            saveMode() {
-                this.save.process = true;
-
-                if (this.device.mode === 'manual') {
-                    this.device.mode = 'auto';
-                    this.$http.post('/api/thermostat/' + this.mac, {
-                        type: 'mode',
-                        command: 'auto'
-                    }).then((response) => {
-                        this.setSaveMode(false, 'successful', true);
-                    }).catch((err) => {
-                        this.setSaveMode(false, 'failed');
-                    });
-                }
-                else {
-                    this.device.mode = 'manual';
-                    this.$http.post('/api/thermostat/' + this.mac, {
-                        type: 'mode',
-                        command: 'manual'
-                    }).then((response) => {
-                        this.setSaveMode(false, 'successful', true);
-                    }).catch((err) => {
-                        this.setSaveMode(false, 'failed');
-                    });
-                }
-            },
-
-            saveOffset() {
-                this.save.process = true;
-                this.$http.post('/api/thermostat/' + this.mac, {
-                    type: 'configuration',
-                    command: 'offset',
-                    parameters: [ this.device.offset ]
-                }).then((response) => {
-                    this.setSaveMode(false, 'successful', true);
-                }).catch((err) => {
-                    this.setSaveMode(false, 'failed');
-                });
-            },
-
-             
-            saveToDatabase(callback) {
-                this.$http.post('http://weather.smarthome.maraundmaik.de/device/thermostat/' + this.mac, {
-                    body: this.device
-                }).then((response) => {
-                    callback(null, response);
-                }).catch((err) => {
-                    callback(err);
-                });
-            },
-
-            setSaveMode(process, state, saveToDB) {
-                this.$http.post('/api/thermostat/' + this.mac, {
-                    type: 'sync',
-                    command: 'sync'
-                })
-                .then(() => {
-                    if (saveToDB && state === 'successful') {
-                        this.saveToDatabase((err) => {
-                            this.save.process = process;
-                            if (err) {
-                                this.save.state = 'failed';
-                            }
-    
-                            this.save.state = state;
-                            window.setTimeout(() => {
-                                if (!this.save.process) {
-                                    this.save.process = false;
-                                    this.save.state = false;
-                                }
-                            }, 2000);
-                        });
-                    }
-                    else {
+        setSaveMode(process, state, saveToDB = false) {
+            this.$http.post('/api/thermostat/' + this.mac, {
+                type: 'sync',
+                command: 'sync'
+            })
+            .then(() => {
+                if (saveToDB && state === 'successful') {
+                    this.saveToDatabase((err) => {
                         this.save.process = process;
+                        if (err) {
+                            this.save.state = SaveResult.Failed;
+                        }
+
                         this.save.state = state;
                         window.setTimeout(() => {
                             if (!this.save.process) {
@@ -427,107 +507,117 @@
                                 this.save.state = false;
                             }
                         }, 2000);
-                    }
-                })
-            },
-
-            setSelection(day) {
-                this.scheduler.selection = day;
-            },
-
-            getMinTimeForFromField(option, key) {
-                if (this.device.timer[option][key-1]) {
-                    return this.device.timer[option][key-1].from;
+                    });
                 }
-
-                return '00:00';
-            },
-
-            getMaxTimeForFromField(option, key) {
-                return '23:59';
-            },
-
-            getMinTimeForToField(option, key) {
-                return this.device.timer[option][key].from;
-            },
-
-            getMaxTimeForToField(option, key) {
-                return '23:59';
-            },
-
-            getTimeFieldModel(option, key) {
-                if (this.device.timer[option][key+1]) {
-                    return this.device.timer[option][key+1].from;
+                else {
+                    this.save.process = process;
+                    this.save.state = state;
+                    window.setTimeout(() => {
+                        if (!this.save.process) {
+                            this.save.process = false;
+                            this.save.state = false;
+                        }
+                    }, 2000);
                 }
+            })
+        }
 
-                return undefined;
-            },
+        setSelection(day) {
+            this.scheduler.selection = day;
+        }
 
-            saveSchedule() {
-                this.save.process = true;
-                const current = this.device.timer[this.scheduler.selection];
-                
-                let parameters = [];
-                parameters = current.map((item, key) => [ item.temperature, item.to ]);
-                parameters = parameters.reduce((acc, item) => acc.concat(item), []);
-                parameters = [this.scheduler.selection].concat(parameters);
+        getMinTimeForFromField(option, key) {
+            if (this.device.timer[option][key-1]) {
+                return this.device.timer[option][key-1].from;
+            }
 
-                this.$http.post('/api/thermostat/' + this.mac, {
-                    type: 'timers',
-                    command: 'timer',
-                    parameters
-                }).then((response) => {
-                    this.setSaveMode(false, 'successful', true);
-                }).catch((err) => {
-                    this.setSaveMode(false, 'failed');
-                });
-            },
+            return '00:00';
+        }
 
-            addTimer() {
-                const current = this.device.timer[this.scheduler.selection]; 
-                
-                current[current.length-1].to = current[current.length-1].from;
-                
-                current.push({
-                    from: current[current.length-1].from,
-                    temperature: current[0].temperature,
-                    to: '24:00'
-                });
-            },
+        getMaxTimeForFromField(option, key) {
+            return '23:59';
+        }
 
-            removeTimer(key) {
-                let current = this.device.timer[this.scheduler.selection];
-                if (current.length === 1) {
-                    return;
-                }
+        getMinTimeForToField(option, key) {
+            return this.device.timer[option][key].from;
+        }
 
-                if (key > 0 && key < current.length - 1) {
-                    current[key-1].to = current[key+1].from;
-                }
+        getMaxTimeForToField(option, key) {
+            return '23:59';
+        }
 
-                this.device.timer[this.scheduler.selection] = current.slice(0, key).concat(current.slice(key+1));
-                
-                this.device.timer[this.scheduler.selection][0].from = '00:00';
-                this.device.timer[this.scheduler.selection][this.device.timer[this.scheduler.selection].length-1].to = '24:00';
-            },
+        getTimeFieldModel(option, key) {
+            if (this.device.timer[option][key+1]) {
+                return this.device.timer[option][key+1].from;
+            }
 
-            syncTimeFromTo(key) {
-                this.device.timer[this.scheduler.selection][key-1].to = this.device.timer[this.scheduler.selection][key].from;
-            },
+            return undefined;
+        }
 
-            syncTimeToFrom(key) {
-                this.device.timer[this.scheduler.selection][key+1].from = this.device.timer[this.scheduler.selection][key].to;
-            },
+        saveSchedule() {
+            this.save.process = true;
+            const current = this.device.timer[this.scheduler.selection];
+            
+            let parameters = [];
+            parameters = current.map((item, key) => [ item.temperature, item.to ]);
+            parameters = parameters.reduce((acc, item) => acc.concat(item), []);
+            parameters = [this.scheduler.selection].concat(parameters);
 
-            syncTemperature(key) {
-                let current = this.device.timer[this.scheduler.selection];
-                if (key === 0) {
-                    current[this.device.timer[this.scheduler.selection].length-1].temperature = current[0].temperature;
-                }
+            this.$http.post('/api/thermostat/' + this.mac, {
+                type: 'timers',
+                command: 'timer',
+                parameters
+            }).then((response) => {
+                this.setSaveMode(false, 'successful', true);
+            }).catch((err) => {
+                this.setSaveMode(false, 'failed');
+            });
+        }
 
-                if (key === this.device.timer[this.scheduler.selection].length - 1) {
-                    current[0].temperature = current[this.device.timer[this.scheduler.selection].length-1].temperature;
-                }
+        addTimer() {
+            const current = this.device.timer[this.scheduler.selection]; 
+            
+            current[current.length-1].to = current[current.length-1].from;
+            
+            current.push({
+                from: current[current.length-1].from,
+                temperature: current[0].temperature,
+                to: '24:00'
+            });
+        }
+
+        removeTimer(key) {
+            let current = this.device.timer[this.scheduler.selection];
+            if (current.length === 1) {
+                return;
+            }
+
+            if (key > 0 && key < current.length - 1) {
+                current[key-1].to = current[key+1].from;
+            }
+
+            this.device.timer[this.scheduler.selection] = current.slice(0, key).concat(current.slice(key+1));
+            
+            this.device.timer[this.scheduler.selection][0].from = '00:00';
+            this.device.timer[this.scheduler.selection][this.device.timer[this.scheduler.selection].length-1].to = '24:00';
+        }
+
+        syncTimeFromTo(key) {
+            this.device.timer[this.scheduler.selection][key-1].to = this.device.timer[this.scheduler.selection][key].from;
+        }
+
+        syncTimeToFrom(key) {
+            this.device.timer[this.scheduler.selection][key+1].from = this.device.timer[this.scheduler.selection][key].to;
+        }
+
+        syncTemperature(key) {
+            let current = this.device.timer[this.scheduler.selection];
+            if (key === 0) {
+                current[this.device.timer[this.scheduler.selection].length-1].temperature = current[0].temperature;
+            }
+
+            if (key === this.device.timer[this.scheduler.selection].length - 1) {
+                current[0].temperature = current[this.device.timer[this.scheduler.selection].length-1].temperature;
             }
         }
     }

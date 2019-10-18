@@ -10,9 +10,8 @@ const app = express();
 
 const weatherRoutes = require('./routes/weather');
 const forecastRoutes = require('./routes/forecast');
-const lightRoutes = require('./routes/light');
+/* const lightRoutes = require('./routes/light'); */
 const thermostatRoutes = require('./routes/thermostat');
-const routes = require('./routes');
 
 let basePath = __dirname.split(path.sep);
 basePath.pop();
@@ -22,7 +21,6 @@ app.use(express.static(basePath.join(path.sep) + '/public'));
 
 app.get('/weather/local', weatherRoutes.getLocalWeather);
 app.get('/weather/forecast', forecastRoutes.getForecast);
-app.get('/downloads/projekte', routes.projekte.printAll);
 
 app.get('/login', (request, response) => {
     return response.sendFile(basePath.join(path.sep) + '/public/login.html');
@@ -83,10 +81,10 @@ app.post('/login', (req, res) => {
 });
 
 app.post('/api/thermostat/:mac', thermostatRoutes.sendCommand);
-
+/* 
 app.post('/licht/an', lightRoutes.lightOn);
 app.post('/licht/aus', lightRoutes.lightOff);
-app.post('/licht/tor', lightRoutes.lightTor);
+app.post('/licht/tor', lightRoutes.lightTor); */
 
 app.listen(config.get('server.port'), (port) => {
     console.log('smarthome is listening on port ' + port);

@@ -1,4 +1,9 @@
 {
     "presets": ["env", "es2015", "stage-0"],
-    "plugins": ["transform-runtime"]
+    "plugins": ["transform-runtime"],
+    "env": {
+        "production": {
+            "presets": ["babili"]
+        }
+    }
 }

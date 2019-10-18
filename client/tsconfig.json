@@ -1,0 +1,19 @@
+{
+    "include": ["**/*"],
+    "compilerOptions": {
+        "sourceMap": true,
+        "strict": true,
+        "noImplicitReturns": true,
+        "noImplicitAny": false,
+        "module": "es2015",
+        "experimentalDecorators": true,
+        "allowSyntheticDefaultImports": true,
+        "emitDecoratorMetadata": true,
+        "moduleResolution": "node",
+        "target": "es5",
+        "lib": [
+            "es2016",
+            "dom"
+        ]
+    }
+}

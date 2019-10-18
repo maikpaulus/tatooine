@@ -2,7 +2,7 @@ const path = require('path');
 const webpack = require('webpack');
 
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
-const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
+const BabiliPlugin = require('babili-webpack-plugin');
 
 process.traceDeprecation = true;
 
@@ -10,7 +10,7 @@ module.exports = {
     mode: process.env.NODE_ENV,
     context: path.resolve(__dirname, './client'),
     entry: {
-        app: './App.js'
+        app: './App.ts'
     },
     
     output: {
@@ -22,13 +22,19 @@ module.exports = {
     module: {
         rules: [
             {
-                test: /\.js$/,
-                loader: 'babel-loader',
-                exclude: /node_modules/
-            },
+                test: /\.tsx?$/,
+                exclude: /node_modules/,
+                loader: "ts-loader",
+                options: {
+                  appendTsSuffixTo: [/\.vue$/]
+                }
+              },
             {
                 test: /\.vue$/,
-                loader: 'vue-loader'
+                loader: 'vue-loader',
+                options: {
+                    esModule: false,
+                }
             },
             {
                 test: /\.s(a|c)ss$/,
@@ -46,27 +52,15 @@ module.exports = {
         ]
     },
 
+    resolve: {
+        extensions: ['.ts', '.vue'],
+        alias: {
+            'vue$': 'vue/dist/vue.esm.js' // 'vue/dist/vue.common.js' for webpack 1
+        }
+    },
+
     plugins: [
         new VueLoaderPlugin(),
-        new webpack.HotModuleReplacementPlugin()
+        /* new BabiliPlugin(), */
     ],
-
-    optimization: {
-        minimizer: [
-          new UglifyJsPlugin({
-            extractComments: true,
-            cache: true,
-            parallel: true
-          })
-        ],
-        splitChunks: {
-            cacheGroups: {
-                vendors: {
-                    test: /[\\/]node_modules[\\/]/,
-                    filename: 'vendors.min.js',
-                    chunks: 'all'
-                }
-            }
-        }
-    }
 }

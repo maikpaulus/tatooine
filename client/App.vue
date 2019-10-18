@@ -4,8 +4,12 @@
     </div>
 </template>
 
-<script>
-    export default {
+<script lang="ts">
+    import Vue from 'vue';
+    import { Component } from 'vue-property-decorator';
+
+    @Component
+    export default class App extends Vue {
         mounted() {
             this.$router.beforeEach((to, from, next) => {
                 next(to.path + '?token=' + window.localStorage.getItem('tatooine'));

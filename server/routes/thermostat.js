@@ -18,7 +18,7 @@ const thermostat = {
 
         request.post({
             method: 'POST',
-            uri: `http://smarthome:60006/${mac}/${type}/${command}`,
+            uri: `http://localhost:60006/${mac}/${type}/${command}`,
             body: { parameters },
             json: true
         })
